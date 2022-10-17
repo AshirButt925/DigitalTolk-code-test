@@ -19,7 +19,7 @@ class TeHelper
 
     public static function getUsermeta($user_id, $key = false)
     {
-        return $user = UserMeta::where('user_id', $user_id)->first()->$key;
+        return UserMeta::where('user_id', $user_id)->first()->$key ?? '';
         if (!$key)
             return $user->usermeta()->get()->all();
         else {
@@ -32,12 +32,14 @@ class TeHelper
 
     public static function convertJobIdsInObjs($jobs_ids)
     {
-
-        $jobs = array();
-        foreach ($jobs_ids as $job_obj) {
-            $jobs[] = Job::findOrFail($job_obj->id);
-        }
-        return $jobs;
+        return array_map(function ($job_obj){
+            return Job::findOrFail($job_obj->id);
+        }, $jobs_ids);
+//        $jobs = array();
+//        foreach ($jobs_ids as $job_obj) {
+//            $jobs[] = Job::findOrFail($job_obj->id);
+//        }
+//        return $jobs;
     }
 
     public static function willExpireAt($due_time, $created_at)

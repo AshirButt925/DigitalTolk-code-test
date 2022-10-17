@@ -57,6 +57,7 @@ class BookingRepository extends BaseRepository
      */
     public function getUsersJobs($user_id)
     {
+        $jobs = []; // i make an jobs array with the empty value
         $cuser = User::find($user_id);
         $usertype = '';
         $emergencyJobs = array();
@@ -69,7 +70,8 @@ class BookingRepository extends BaseRepository
             $jobs = $jobs->pluck('jobs')->all();
             $usertype = 'translator';
         }
-        if ($jobs) {
+        if (count($jobs) > 0) { /* instead of check only truly falsy statement i check the count of array
+ if its greater than 0 then it will move for itrate form foreach loop */
             foreach ($jobs as $jobitem) {
                 if ($jobitem->immediate == 'yes') {
                     $emergencyJobs[] = $jobitem;
@@ -742,9 +744,9 @@ class BookingRepository extends BaseRepository
     {
         $job = Job::find($id);
 
-        $current_translator = $job->translatorJobRel->where('cancel_at', Null)->first();
-        if (is_null($current_translator))
-            $current_translator = $job->translatorJobRel->where('completed_at', '!=', Null)->first();
+        $current_translator = $job->translatorJobRel->where('cancel_at', Null)
+            ->orWhere('completed_at', '!=', Null)
+            ->first();
 
         $log_data = [];
 
@@ -1438,7 +1440,10 @@ class BookingRepository extends BaseRepository
                 $job->status = 'assigned';
                 $job->save();
                 $user = $job->user()->get()->first();
-                $mailer = new AppMailer();
+                $mailer = new AppMailer(); /* this is the bad method to sending mail i will be use the
+ events for the mails or notifications when something is happened than the
+ event will be call to send the specific tasks and below i see the method of call push notifications are also not
+ good practice the same thing use for push notification is events.*/
 
                 if (!empty($job->user_email)) {
                     $email = $job->user_email;
@@ -1690,10 +1695,14 @@ class BookingRepository extends BaseRepository
             $allJobs = Job::query();
 
             if (isset($requestdata['feedback']) && $requestdata['feedback'] != 'false') {
-                $allJobs->where('ignore_feedback', '0');
                 $allJobs->whereHas('feedback', function ($q) {
                     $q->where('rating', '<=', '3');
-                });
+                }); /*
+ check the whereHas feedback before checking where ignore_feedback because
+ the whereHas clauser gets all the record again and the purpose of the $allJobs->where('ignore_feedback', '0') clause
+ is died.
+ */
+                $allJobs->where('ignore_feedback', '0');
                 if (isset($requestdata['count']) && $requestdata['count'] != 'false') return ['count' => $allJobs->count()];
             }
 
